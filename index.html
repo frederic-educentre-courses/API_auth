@@ -15,9 +15,38 @@
 	</head>
 	<body>
 		<div class="reveal">
-			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+			<section>
+				<h1>API - Authentification</h1>
+				<p>Création d'une API sécurisée avec authentification en PHP</p>
+			</section>
+			<section>
+				<h2>Authentification</h2>
+				<p>Les méthodes courantes d'authentification pour les API incluent :</p>
+				<ul>
+					<li>Clé API (API Key)</li>
+					<li>OAuth (Open Authorization)</li>
+					<li>JWT (JSON Web Token) <-- </li>
+					<li>Basic Auth (Authentification de base)</li>
+				</ul>
+			</section>
+			<section>
+				<h2>JWT (JSON Web Token)</h2>
+				<pre><code class="php">&lt;?php
+-require 'vendor/autoload.php';
+-use Firebase\JWT\JWT;
+-use Firebase\JWT\Key;
+
+-function generateJWT($user) {
+-    $payload = [
+-        'sub' => $user['id'],
+-        'email' => $user['email'],
+-        'iat' => time(),
+-        'exp' => time() + 3600 // 1 heure
+-    ];
+-    return JWT::encode($payload, 'votre_clé_secrète', 'HS256');
+-}
+-?&gt;</code></pre>
+				</section>
 			</div>
 		</div>
 
