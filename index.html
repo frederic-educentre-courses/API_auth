@@ -15,8 +15,9 @@
 	</head>
 	<body>
 		<div class="reveal">
-			<section>
-				<h1>API - Authentification</h1>
+			<div class="slides">
+						<section>
+				<h1>API - Auth</h1>
 				<p>Création d'une API sécurisée avec authentification en PHP</p>
 			</section>
 			<section>
@@ -31,7 +32,9 @@
 			</section>
 			<section>
 				<h2>JWT (JSON Web Token)</h2>
-				<pre><code class="php">&lt;?php
+				<pre>
+					<code class="php">
+				&lt;?php
 -require 'vendor/autoload.php';
 -use Firebase\JWT\JWT;
 -use Firebase\JWT\Key;
@@ -47,8 +50,186 @@
 -}
 -?&gt;</code></pre>
 				</section>
+				<section>
+					<h2>Exemple</h2>
+					<pre><code class="php">
+&lt;?php
+require __DIR__ . '/vendor/autoload.php';
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+// Charger .env
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Connexion MySQL
+function db() {
+    static $pdo = null;
+    if (!$pdo) {
+        $pdo = new PDO(
+            "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'] . ";charset=utf8mb4",
+            $_ENV['DB_USER'],
+            $_ENV['DB_PASS'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]
+        );
+    }
+    return $pdo;
+}
+
+// Réponse JSON
+function respond($data, $status = 200) {
+    http_response_code($status);
+    header("Content-Type: application/json");
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ======================================================================
+// JWT
+// ======================================================================
+
+function generateAccessToken($user) {
+    $payload = [
+        'sub'   => $user['id'],
+        'email' => $user['email'],
+        'iat'   => time(),
+        'exp'   => time() + intval($_ENV['ACCESS_TOKEN_EXP'])
+    ];
+    return JWT::encode($payload, $_ENV['JWT_SECRET'], 'HS256');
+}
+
+function generateRefreshToken() {
+    return bin2hex(random_bytes(64));
+}
+
+function getBearerToken() {
+    $h = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+    if (!$h) return null;
+    if (preg_match('/Bearer\s(\S+)/', $h, $m)) return $m[1];
+    return null;
+}
+
+function verifyAccessToken($token) {
+    try {
+        return (array) JWT::decode($token, new Key($_ENV['JWT_SECRET'], 'HS256'));
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+// ======================================================================
+// AUTH MIDDLEWARE
+// ======================================================================
+function requireAuth() {
+    $token = getBearerToken();
+    if (!$token) respond(['error' => 'Token manquant'], 401);
+    $payload = verifyAccessToken($token);
+    if (!$payload) respond(['error' => 'Token invalide ou expiré'], 401);
+    return $payload;
+}
+
+// ======================================================================
+// ROUTER
+// ======================================================================
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$method = $_SERVER['REQUEST_METHOD'];
+
+// ======================================================================
+// ROUTE : /register
+// ======================================================================
+if ($uri === '/register' && $method === 'POST') {
+
+    $body = json_decode(file_get_contents("php://input"), true);
+    $email = trim($body['email'] ?? '');
+    $password = $body['password'] ?? '';
+    $name = $body['name'] ?? '';
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6) {
+        respond(["error" => "Email invalide ou mot de passe trop court"], 400);
+    }
+
+    try {
+        $stmt = db()->prepare("INSERT INTO users (email, password, name) VALUES (?, ?, ?)");
+        $stmt->execute([$email, password_hash($password, PASSWORD_DEFAULT), $name]);
+        respond(["message" => "Compte créé"], 201);
+    } catch (PDOException $e) {
+        respond(["error" => "Email déjà utilisé"], 409);
+    }
+}
+
+// ======================================================================
+// ROUTE : /login
+// ======================================================================
+if ($uri === '/login' && $method === 'POST') {
+
+    $body = json_decode(file_get_contents("php://input"), true);
+    $email = $body['email'] ?? '';
+    $password = $body['password'] ?? '';
+
+    $stmt = db()->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if (!$user || !password_verify($password, $user['password'])) {
+        respond(["error" => "Identifiants invalides"], 401);
+    }
+
+    $access = generateAccessToken($user);
+    $refresh = generateRefreshToken();
+
+    db()->prepare("UPDATE users SET refresh_token=? WHERE id=?")
+       ->execute([password_hash($refresh, PASSWORD_DEFAULT), $user['id']]);
+
+    respond([
+        "access_token"  => $access,
+        "refresh_token" => $refresh,
+        "expires_in"    => intval($_ENV['ACCESS_TOKEN_EXP'])
+    ]);
+}
+
+// ======================================================================
+// ROUTE : /logout
+// ======================================================================
+if ($uri === '/logout' && $method === 'POST') {
+
+    $payload = requireAuth();
+
+    db()->prepare("UPDATE users SET refresh_token=NULL WHERE id=?")
+      ->execute([$payload['sub']]);
+
+    respond(["message" => "Déconnecté"]);
+}
+
+// ======================================================================
+// ROUTE : /profile
+// ======================================================================
+if ($uri === '/profile' && $method === 'GET') {
+
+    $payload = requireAuth();
+    $stmt = db()->prepare("SELECT id, email, name, created_at FROM users WHERE id=?");
+    $stmt->execute([$payload['sub']]);
+    $user = $stmt->fetch();
+
+    respond(["user" => $user]);
+}
+
+// ======================================================================
+// ROUTE PAR DÉFAUT
+// ======================================================================
+respond(["error" => "Route inconnue"], 404);
+</code></pre>
+				</section>
+				<section>
+					<h2>Démo in action</h2>
+				</section>
+			</div>
 			</div>
 		</div>
+		
 
 		<script src="dist/reveal.js"></script>
 		<script src="plugin/notes/notes.js"></script>
