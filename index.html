@@ -16,39 +16,51 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-						<section>
-				<h1>API - Auth</h1>
-				<p>Création d'une API sécurisée avec authentification en PHP</p>
-			</section>
-			<section>
-				<h2>Authentification</h2>
-				<p>Les méthodes courantes d'authentification pour les API incluent :</p>
-				<ul>
-					<li>Clé API (API Key)</li>
-					<li>OAuth (Open Authorization)</li>
-					<li>JWT (JSON Web Token) <-- </li>
-					<li>Basic Auth (Authentification de base)</li>
-				</ul>
-			</section>
-			<section>
-				<h2>JWT (JSON Web Token)</h2>
-				<pre>
-					<code class="php">
-				&lt;?php
--require 'vendor/autoload.php';
--use Firebase\JWT\JWT;
--use Firebase\JWT\Key;
+                <section>
+                    <h1>API - Auth</h1>
+                </section>
+                <section>
+                    <h2>Authentification</h2>
+                    <p>Les méthodes courantes d'authentification pour les API incluent :</p>
+                    <ul>
+                        <li>Clé API (API Key)</li>
+                        <li>OAuth (Open Authorization)</li>
+                        <li>JWT (JSON Web Token) <-- </li>
+                        <li>Basic Auth (Authentification de base)</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Structure d'un JWT</h2>
+                    <p>Un JWT est composé de trois parties séparées par des points :</p>
+                    <ul>
+                        <li><strong>Header</strong> : Contient le type de token (JWT) et l'algorithme de signature (ex. HS256).</li>
+                        <li><strong>Payload</strong> : Contient les informations (claims) sur l'utilisateur et les métadonnées.</li>
+                        <li><strong>Signature</strong> : Permet de vérifier l'intégrité du token et son authenticité.</li>
+                    </ul>
+                    <p>Exemple : <pre><code class="bash">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</code></pre></p>
+                </section>
+                <section>
+                    <a href="https://www.jwt.io/">JWT Debugger</a>
+                    <p>Encoder et décoder</p>
+                </section>
+                <section>
+                    <h2>JWT (JSON Web Token)</h2>
+                    <pre>
+                        <code class="php">&lt;?php
+require 'vendor/autoload.php';
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
--function generateJWT($user) {
--    $payload = [
--        'sub' => $user['id'],
--        'email' => $user['email'],
--        'iat' => time(),
--        'exp' => time() + 3600 // 1 heure
--    ];
--    return JWT::encode($payload, 'votre_clé_secrète', 'HS256');
--}
--?&gt;</code></pre>
+function generateJWT($user) {
+    $payload = [
+        'sub' => $user['id'], // Sujet (ID utilisateur)
+        'email' => $user['email'], // Email utilisateur
+        'iat' => time(), // Heure d'émission
+        'exp' => time() + 3600 // 1 heure
+    ];
+    return JWT::encode($payload, 'votre_clé_secrète', 'HS256');
+}
+?&gt;</code></pre>
 				</section>
 				<section>
 					<h2>Exemple</h2>
@@ -222,11 +234,11 @@ if ($uri === '/profile' && $method === 'GET') {
 // ======================================================================
 respond(["error" => "Route inconnue"], 404);
 </code></pre>
-				</section>
-				<section>
-					<h2>Démo in action</h2>
-				</section>
-			</div>
+                    </section>
+                    <section>
+                        <h2>Démo in action</h2>
+                    </section>
+                </div>
 			</div>
 		</div>
 		
